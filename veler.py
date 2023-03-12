@@ -8,8 +8,8 @@ DegToRad = 2*3.14159 / 360
 pygame.init()
 
 # Set up the screen
-screen_width = 640
-screen_height = 480
+screen_width = 504
+screen_height = 896
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Veler")
 
