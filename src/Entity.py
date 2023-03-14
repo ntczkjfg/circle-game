@@ -9,12 +9,17 @@ class Entity():
                  , speed = None
                  , direction = None
                  , typ = None
-                 , timer = None
+                 , blueTimer = None
+                 , bombTimer = None
+                 , despawnTimer = None
                  , player = None
                  , parent = None):
         self.game = parent
         self.player = player
-        self.bombTimer = None
+        # Timers for controlling temporary states
+        self.blueTimer = blueTimer
+        self.bombTimer = bombTimer
+        self.despawnTimer = despawnTimer
         # Size, position, velocity
         self.r = rng.integers(4, 19) if r == None else r
         if type(c) == type(None):
@@ -37,6 +42,7 @@ class Entity():
         # 0 = food, runs from player
         # 1 = neutral, travels linearly, no damage
         # 2 = predator, moves toward player
+        # 3 = bomb explosion, damages player and kills other entities
         # 10 = powerup, allows killing reds
         # 11 = powerup, immune to damage
         # 12 = powerup, forcefield
@@ -46,12 +52,8 @@ class Entity():
         # 16 = powerup, gain an extra life
         # 17 = powerup, all red circles turn blue for 5 seconds
         # 18 = powerup, you strongly repel close red circles for 5 seconds
-        # 19 = powerup, bomb
-        # 20 = bomb entity
+        # 19 = bomb
         self.type = 0 if typ == None else typ
-        
-        # Used to time out temporary state changes
-        self.timer = 0 if timer == None else timer
     
     def left(self):
         return self.c[0] - self.r
@@ -80,6 +82,7 @@ class Entity():
         self.dir *= f
 
     def collides(self, entity):
+        if entity == self: return False
         diffs = self.getDiffs(entity)
         if np.linalg.norm(diffs) <= self.r + entity.r:
             return True
@@ -92,50 +95,35 @@ class Entity():
             return BLUE
         elif self.type == 2: # Red
             return RED
+        elif self.type == 3: # Bomb explosion
+            if self.bombTimer >= 10:
+                return RED
+            return (200, 200, 0)
         elif self.type == -2: # Debug
             return PURPLE
-        elif self.type == 10: # Powerup, lets you kill reds
-            return CYAN
-        elif self.type == 11: # Powerup, immune to damage
-            return GREEN
-        elif self.type == 12: # Powerup, forcefield
-            return (255, 128, 128)
-        elif self.type == 13: # Powerup, circles move half speed
-            return (128, 255, 128)
-        elif self.type == 14: # Powerup, yellow circles double radius
-            return (64, 128, 128)
-        elif self.type == 15: # Powerup, spawn extra yellow circle
-            return (255, 255, 128)
-        elif self.type == 16: # Powerup, +1 life
-            return (255, 64, 64)
-        elif self.type == 17: # Powerup, all red circles turn blue for 5 seconds
-            return (64, 64, 255)
-        elif self.type == 18: # Powerup, repel red circles
-            return (64, 255, 255)
+        elif self.type in [10, 11, 12, 13, 14, 15, 16, 17, 18]: # Powerup, lets you kill reds
+            return images[str(self.type)]
         elif self.type == 19: # Powerup, bomb
-            return (0, 0, 128)
-        elif self.type == 20: # Active bomb
+            if self.bombTimer == None:
+                return images["19_1"]
             if self.bombTimer > 60:
                 if self.bombTimer % 30 < 15:
-                    return (0, 0, 128)
-                return (200, 128, 0)
-            if self.bombTimer >= 0:
-                if self.bombTimer % 20 < 10:
-                    return (0, 0, 128)
-                return (200, 128, 0)
-            if self.bombTimer >= -10:
-                return (255, 0, 0)
-            return (200, 200, 0)
-        else: # Forgot to add color, fallback to grey
-            return (128, 128, 128)
+                    return images["19_2"]
+                return images["19_3"]
+            if self.bombTimer % 20 < 10:
+                return images["19_2"]
+            return images["19_3"]
 
     # Draws the entity on screen
     def draw(self):
         for coord in self.wrappedCoords():
-            pygame.draw.circle(screen
-                               , self.color()
-                               , [coord[0], screen_height - coord[1]]
-                               , self.r)
+            if self.type in [-2, -1, 0, 1, 2, 3]:
+                pygame.draw.circle(screen
+                                   , self.color()
+                                   , [coord[0], screen_height - coord[1]]
+                                   , self.r)
+            else:
+                screen.blit(self.color(), (coord[0] - self.r, screen_height - (coord[1] + self.r)))
 
     # Gets x- and y-differences between self and another entity
     # Accounts for screen wrapping if necessary, finding diffs
@@ -162,6 +150,10 @@ class Entity():
         if self.player.powerup(13) and self.type != -1: speed /= 3
         newCoords = self.c + speed * self.dir
         if not self.game.wrapping:
+            if self.left() < 0: self.c[0] = self.r
+            if self.right() > screen_width: self.c[0] = screen_width - self.r
+            if self.bottom() < 0: self.c[1] = self.r
+            if self.top() > screen_height: self.c[1] = screen_height - self.r
             # Then collide with the edges
             if newCoords[0] - self.r <= 0:
                 self.dir[0] = abs(self.dir[0])
@@ -175,27 +167,17 @@ class Entity():
             elif newCoords[1] + self.r >= screen_height:
                 self.dir[1] = -abs(self.dir[1])
                 newCoords[1] = self.c[1]
-        newEntity = Entity(c = newCoords, r = self.r, speed = self.speed, direction = self.dir, typ = self.type, timer = self.timer, parent = self.game)
+        newEntity = Entity(c = newCoords, r = self.r, speed = self.speed, direction = self.dir, typ = self.type, blueTimer = self.blueTimer, parent = self.game)
         for collider in colliders:
             if collider == self: continue
             if self.collides(collider):
-                if collider.type == 20:
-                    if collider.bombTimer <= 0:
-                        self.game.entities.remove(self)
-                        return
-                    if not self.game.powerupsCollide:
-                        continue
                 self.bounce(collider)
                 collider.bounce(self)
-                while self.collides(collider):
-                    collider.move()
+                if collider.speed > 0:
+                    while self.collides(collider): collider.move()
+                else:
+                    while self.collides(collider): self.move()
             if newEntity.collides(collider):
-                if collider.type == 20:
-                    if collider.bombTimer <= 0:
-                        self.game.entities.remove(self)
-                        return
-                    if not self.game.powerupsCollide:
-                        continue
                 if collider.type == -1:
                     collider.collide(self)
                 if not self.collides(collider):
