@@ -1,6 +1,7 @@
 import pygame
 import numpy as np
-from os import listdir
+from os import listdir, getcwd
+import sys
 
 # Initialize the game window
 screen_width = 504
@@ -24,7 +25,10 @@ CYAN = (0, 255, 255)
 powerups = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 
 images = {}
-PATH = "C:/Users/User/My Stuff/GitHub/circle-game/img/"
+if hasattr(sys, '_MEIPASS'):
+    PATH = sys._MEIPASS + "\\img\\"
+else:
+    PATH = getcwd()[:-3] + "img\\"
 imgList = listdir(PATH)
 for filename in imgList:
     images[filename[:-4]] = pygame.transform.scale(pygame.image.load(PATH + filename), (30, 30))
