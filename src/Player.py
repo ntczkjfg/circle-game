@@ -38,7 +38,7 @@ class Player(Entity):
             pass
         elif entity.type == 2: # red
             if self.powerup(10): # Kill red circles
-                self.game.entities.remove(entity)
+                self.game.removeEntity(entity)
             elif self.powerup(11) or self.iframes > 0: # Immune to damage
                 pass
             elif self.powerup(12): # Forcefield that breaks
@@ -57,13 +57,18 @@ class Player(Entity):
                 self.damage()
         elif entity.type == 10: # Lets you kill red circles for 3 seconds
             self.powerups.append([10, 3*60])
+            self.game.removeEntity(entity)
         elif entity.type == 11: # Immune to damage for 5 seconds
             self.powerups.append([11, 5*60])
+            self.game.removeEntity(entity)
         elif entity.type == 12: # Forcefield, last 15 seconds or 1 hit
             self.powerups.append([12, 15*60])
+            self.game.removeEntity(entity)
         elif entity.type == 13: # Entities move 1/3 speed for 8 seconds
             self.powerups.append([13, 8*60])
+            self.game.removeEntity(entity)
         elif entity.type == 14: # Yellow circles double in size for 20 seconds
+            self.game.removeEntity(entity)
             if not self.powerup(14):
                 self.powerups.append([14, 20*60])
             else:
@@ -75,18 +80,26 @@ class Player(Entity):
                 if entity.type == 0:
                     entity.r *= 2
         elif entity.type == 15: # Spawn extra yellow circle
+            self.game.removeEntity(entity)
             self.game.spawnFood()
         elif entity.type == 16: # Gain extra life
             self.lifeCount += 1
+            self.game.removeEntity(entity)
         elif entity.type == 17: # All reds turn blue for 5 seconds
+            self.game.removeEntity(entity)
             for entity1 in self.game.entities:
                 if entity1.type == 2:
                     entity1.type = 1
                     entity1.blueTimer = 5*60
         elif entity.type == 18: # Repel red circles for 5 seconds
             self.powerups.append([18, 5*60])
+            self.game.removeEntity(entity)
         elif entity.type == 19 and not entity.bombTimer: # Bomb, explodes after 5 seconds damaging player and killing entities within radius
             entity.bombTimer = 5*60
+        elif entity.type == 20: # Spawn two additional powerups
+            self.game.removeEntity(entity)
+            self.game.spawnPowerup(fromPowerup = True)
+            self.game.spawnPowerup(fromPowerup = True)
     
     def color(self):
         for powerup in self.powerups:

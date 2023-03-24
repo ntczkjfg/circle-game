@@ -53,6 +53,7 @@ class Entity():
         # 17 = powerup, all red circles turn blue for 5 seconds
         # 18 = powerup, you strongly repel close red circles for 5 seconds
         # 19 = bomb
+        # 20 = powerup, spawns 2 more powerups
         self.type = 0 if typ == None else typ
     
     def left(self):
@@ -113,11 +114,13 @@ class Entity():
             if self.bombTimer % 20 < 10:
                 return images["19_2"]
             return images["19_3"]
+        elif self.type == 20: # Temporary, haven't made graphic yet
+            return (128, 128, 128)
 
     # Draws the entity on screen
     def draw(self):
         for coord in self.wrappedCoords():
-            if self.type in [-2, -1, 0, 1, 2, 3]:
+            if self.type in [-2, -1, 0, 1, 2, 3, 20]:
                 pygame.draw.circle(screen
                                    , self.color()
                                    , [coord[0], screen_height - coord[1]]
@@ -169,15 +172,21 @@ class Entity():
                 newCoords[1] = self.c[1]
         newEntity = Entity(c = newCoords, r = self.r, speed = self.speed, direction = self.dir, typ = self.type, blueTimer = self.blueTimer, parent = self.game)
         for collider in colliders:
+            # Don't collide with self
             if collider == self: continue
+            # Check if we're already in collision
             if self.collides(collider):
                 self.bounce(collider)
                 collider.bounce(self)
+                # Move the other object if possible
                 if collider.speed > 0:
                     while self.collides(collider): collider.move()
+                # Otherwise move self
                 else:
                     while self.collides(collider): self.move()
+            # Check if we're about to be in collision
             if newEntity.collides(collider):
+                # Colliding with a player?  
                 if collider.type == -1:
                     collider.collide(self)
                 if not self.collides(collider):

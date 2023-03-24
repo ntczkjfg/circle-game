@@ -1,0 +1,1 @@
+C:\Users\User\AppData\Roaming\Python\Python310\Scripts\pyinstaller.exe "C:\Users\User\My Stuff\GitHub\circle-game\src\Veler.py" --onefile --noconsole --add-data "img;img"

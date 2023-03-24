@@ -22,7 +22,7 @@ YELLOW = (255, 255, 0)
 PURPLE = (255, 0, 255)
 CYAN = (0, 255, 255)
 
-powerups = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+powerups = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 
 images = {}
 if hasattr(sys, '_MEIPASS'):
